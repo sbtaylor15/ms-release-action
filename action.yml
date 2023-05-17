@@ -1,0 +1,55 @@
+name: "Release Action"
+description: "Release Action build and push docker image to registry"
+inputs:
+  gh_repository_owner:
+    description: "GitHub Repository Owner"
+    required: true
+  gh_event_name:
+    description: "GitHub Event Name"
+    required: true
+  gh_ref:
+    description: "GitHub Reference (A file that contains a Git commit SHA-1 hash)"
+    required: true
+  registry:
+    description: "Registry Name"
+    required: true
+  QUAY_USERID:
+    description: "Quay Registery Username"
+    required: true
+  QUAY_PASSWORD:
+    description: "Quay Registery Password"
+    required: true
+  image_repo_tag:
+    description: "Image Tag Name"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      id: checkout
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+
+    - name: Login to Quay
+      if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+      id: login
+      uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.QUAY_USERID }}
+        password: ${{ inputs.QUAY_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+      id: build
+      uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3.3.1
+      with:
+        push: true
+        tags: ${{ inputs.image_repo_tag }}
+
+    - name: Build Docker Image
+      if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
+      id: build_only
+      uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3.3.1
+      with:
+        tags: ${{ inputs.image_repo_tag }}
